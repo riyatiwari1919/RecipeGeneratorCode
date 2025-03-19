@@ -1,48 +1,54 @@
 import spacy
-from rasa_nlu.model import Interpreter
 import random
 
-# Load a pre-trained spaCy model for NLP
+# Load spaCy NLP model
 nlp = spacy.load("en_core_web_sm")
 
-# Load Rasa NLU model (assuming the model is already trained and available)
-interpreter = Interpreter.load("./models/nlu")
-
-# Sample recipes database
+# Sample recipe dataset
 recipes = {
     "pasta": {
-        "ingredients": ["pasta", "tomato sauce", "garlic", "olive oil", "parmesan cheese"],
-        "instructions": "Boil pasta. Heat olive oil, sauté garlic, add tomato sauce. Mix pasta and sauce, then serve with parmesan cheese."
+        "ingredients": ["pasta", "tomato sauce", "garlic", "onion", "cheese"],
+        "steps": [
+            "Boil pasta until al dente.",
+            "Sauté garlic and onion in olive oil.",
+            "Add tomato sauce and simmer.",
+            "Mix in pasta and top with cheese.",
+        ],
     },
-    "pancakes": {
-        "ingredients": ["flour", "milk", "eggs", "baking powder", "sugar", "butter"],
-        "instructions": "Mix ingredients, heat a pan, pour batter, and cook until golden brown."
+    "omelette": {
+        "ingredients": ["eggs", "milk", "salt", "pepper", "butter"],
+        "steps": [
+            "Beat eggs with milk, salt, and pepper.",
+            "Heat butter in a pan.",
+            "Pour egg mixture and cook until firm.",
+            "Fold and serve hot.",
+        ],
     },
     "salad": {
-        "ingredients": ["lettuce", "tomato", "cucumber", "olive oil", "lemon juice", "salt"],
-        "instructions": "Chop vegetables, mix in a bowl, add dressing, and serve."
-    }
+        "ingredients": ["lettuce", "tomato", "cucumber", "olive oil", "lemon juice"],
+        "steps": [
+            "Chop all vegetables.",
+            "Mix with olive oil and lemon juice.",
+            "Toss well and serve fresh.",
+        ],
+    },
 }
 
 def generate_recipe(food_item):
-    food_item = food_item.lower()
-    if food_item in recipes:
-        recipe = recipes[food_item]
-        return f"Recipe for {food_item.capitalize()}:\n\nIngredients: {', '.join(recipe['ingredients'])}\n\nInstructions: {recipe['instructions']}"
-    else:
-        return f"Sorry, I don't have a recipe for {food_item}."
+    # Process food item with spaCy
+    doc = nlp(food_item.lower())
 
-def get_food_from_input(user_input):
-    doc = nlp(user_input)
+    # Extract main food keyword
     for token in doc:
-        if token.pos_ == "NOUN":
-            return token.text
-    return ""
+        if token.text in recipes:
+            recipe = recipes[token.text]
+            return f"Recipe for {token.text.capitalize()}:\n\n" \
+                   f"🛒 Ingredients: {', '.join(recipe['ingredients'])}\n\n" \
+                   f"📌 Steps:\n" + "\n".join([f"{i+1}. {step}" for i, step in enumerate(recipe["steps"])])
+    
+    return "Sorry, I don't have a recipe for that."
 
-# Example interaction
-user_input = "Can you give me a recipe for pasta?"
-food_item = get_food_from_input(user_input)
-if food_item:
+# Get user input and generate recipe
+if __name__ == "__main__":
+    food_item = input("Enter a food name: ")
     print(generate_recipe(food_item))
-else:
-    print("I couldn't understand the food item. Please try again.")
